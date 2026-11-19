@@ -6,6 +6,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import com.raimundo.smartpos.core.model.ThemeMode
 
 private val LightColors =
     lightColorScheme(
@@ -43,9 +44,15 @@ private val DarkColors =
 
 @Composable
 fun SmartPosTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
     content: @Composable () -> Unit,
 ) {
+    val darkTheme =
+        when (themeMode) {
+            ThemeMode.LIGHT -> false
+            ThemeMode.DARK -> true
+            ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        }
     val colorScheme = if (darkTheme) DarkColors else LightColors
     val extendedColors = if (darkTheme) DarkExtendedColors else LightExtendedColors
 

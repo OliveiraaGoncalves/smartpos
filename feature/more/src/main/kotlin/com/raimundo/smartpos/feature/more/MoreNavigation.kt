@@ -1,5 +1,8 @@
 package com.raimundo.smartpos.feature.more
 
+import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavGraphBuilder
@@ -26,10 +29,15 @@ fun NavGraphBuilder.moreScreen(
     onBottomNavigate: (BottomDestination) -> Unit,
 ) {
     composable<MoreRoute> {
+        val viewModel: MoreViewModel = hiltViewModel()
+        val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+
         MoreScreen(
             appVersion = appVersion,
             merchantId = merchantId,
             terminalId = terminalId,
+            themeMode = themeMode,
+            onThemeModeSelect = viewModel::onThemeModeSelect,
             onPendingsClick = onPendingsClick,
             onBottomNavigate = onBottomNavigate,
         )

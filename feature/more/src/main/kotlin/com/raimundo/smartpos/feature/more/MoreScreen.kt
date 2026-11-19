@@ -18,12 +18,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import com.raimundo.smartpos.core.model.ThemeMode
 import com.raimundo.smartpos.core.ui.component.BottomDestination
 import com.raimundo.smartpos.core.ui.component.DataRow
 import com.raimundo.smartpos.core.ui.component.MenuItem
 import com.raimundo.smartpos.core.ui.component.PosBottomBar
 import com.raimundo.smartpos.core.ui.component.PosTopBar
 import com.raimundo.smartpos.core.ui.component.SupportContactDialog
+import com.raimundo.smartpos.core.ui.component.ThemeModeDialog
 import com.raimundo.smartpos.core.ui.theme.SmartPosSpacing
 import com.raimundo.smartpos.core.ui.theme.SmartPosTheme
 
@@ -32,12 +34,15 @@ fun MoreScreen(
     appVersion: String,
     merchantId: String,
     terminalId: String,
+    themeMode: ThemeMode,
+    onThemeModeSelect: (ThemeMode) -> Unit,
     onPendingsClick: () -> Unit,
     onBottomNavigate: (BottomDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showTerminalDialog by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -52,6 +57,7 @@ fun MoreScreen(
             )
             MenuItem(label = "Pendências", onClick = onPendingsClick)
             MenuItem(label = "Dados do terminal", onClick = { showTerminalDialog = true })
+            MenuItem(label = "Tema · ${themeMode.label}", onClick = { showThemeDialog = true })
             HorizontalDivider()
             MenuItem(label = "Falar com o suporte", onClick = { showSupportDialog = true })
 
@@ -88,10 +94,19 @@ fun MoreScreen(
     if (showSupportDialog) {
         SupportContactDialog(onDismiss = { showSupportDialog = false })
     }
+
+    if (showThemeDialog) {
+        ThemeModeDialog(
+            selected = themeMode,
+            onSelect = onThemeModeSelect,
+            onDismiss = { showThemeDialog = false },
+        )
+    }
 }
 
 private val NO_OP: () -> Unit = {}
 private val NO_OP_DESTINATION: (BottomDestination) -> Unit = {}
+private val NO_OP_THEME: (ThemeMode) -> Unit = {}
 
 @Preview(name = "Claro")
 @Preview(name = "Escuro", uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
@@ -102,6 +117,8 @@ private fun MoreScreenPreview() {
             appVersion = "1.0.0",
             merchantId = "123456789012345",
             terminalId = "12345678",
+            themeMode = ThemeMode.SYSTEM,
+            onThemeModeSelect = NO_OP_THEME,
             onPendingsClick = NO_OP,
             onBottomNavigate = NO_OP_DESTINATION,
         )
