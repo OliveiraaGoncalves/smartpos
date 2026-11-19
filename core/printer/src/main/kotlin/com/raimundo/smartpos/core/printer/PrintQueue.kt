@@ -2,6 +2,7 @@ package com.raimundo.smartpos.core.printer
 
 import android.util.Log
 import com.raimundo.smartpos.core.common.Clock
+import com.raimundo.smartpos.core.model.ReceiptFormatter
 import com.raimundo.smartpos.core.model.Transaction
 import com.raimundo.smartpos.core.model.TransactionStatus
 import kotlinx.coroutines.CancellationException

@@ -11,11 +11,11 @@ import com.raimundo.smartpos.core.domain.engine.TransactionEngine
 import com.raimundo.smartpos.core.localstorage.db.SmartPosDatabase
 import com.raimundo.smartpos.core.localstorage.db.TransactionEntity
 import com.raimundo.smartpos.core.model.PaymentType
+import com.raimundo.smartpos.core.model.ReceiptFormatter
 import com.raimundo.smartpos.core.model.RemoteStatus
 import com.raimundo.smartpos.core.model.TerminalConfig
 import com.raimundo.smartpos.core.model.TransactionStatus
 import com.raimundo.smartpos.core.printer.PrintQueue
-import com.raimundo.smartpos.core.printer.ReceiptFormatter
 import com.raimundo.smartpos.core.printer.ReceiptPrinter
 import com.raimundo.smartpos.core.testing.FakeGateway
 import com.raimundo.smartpos.core.testing.MERCHANT

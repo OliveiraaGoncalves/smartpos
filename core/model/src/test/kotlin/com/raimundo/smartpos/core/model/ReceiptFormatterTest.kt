@@ -1,8 +1,5 @@
-package com.raimundo.smartpos.core.printer
+package com.raimundo.smartpos.core.model
 
-import com.raimundo.smartpos.core.model.TransactionStatus
-import com.raimundo.smartpos.core.model.UndoReason
-import com.raimundo.smartpos.core.testing.transaction
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.TimeZone
@@ -13,8 +10,17 @@ class ReceiptFormatterTest {
     @Test
     fun `comprovante contem transactionId, valor e status`() {
         val tx =
-            transaction(id = "123e4567-e89b-12d3-a456-426614174000", amountCents = 123_456)
-                .copy(status = TransactionStatus.DESFEITA, undoReason = UndoReason.TIMEOUT)
+            Transaction(
+                id = "123e4567-e89b-12d3-a456-426614174000",
+                amountCents = 123_456,
+                paymentType = PaymentType.CREDITO,
+                merchantId = "123456789012345",
+                terminalId = "12345678",
+                status = TransactionStatus.DESFEITA,
+                createdAtMillis = 0,
+                updatedAtMillis = 0,
+                undoReason = UndoReason.TIMEOUT,
+            )
 
         val receipt = formatter.format(tx)
 

@@ -1,5 +1,6 @@
 package com.raimundo.smartpos.core.printer
 
+import com.raimundo.smartpos.core.model.ReceiptFormatter
 import com.raimundo.smartpos.core.model.TransactionStatus
 import com.raimundo.smartpos.core.testing.TestClock
 import com.raimundo.smartpos.core.testing.transaction

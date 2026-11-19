@@ -1,14 +1,15 @@
-package com.raimundo.smartpos.core.printer
+package com.raimundo.smartpos.core.model
 
-import com.raimundo.smartpos.core.model.Money
-import com.raimundo.smartpos.core.model.Transaction
-import com.raimundo.smartpos.core.model.TransactionStatus
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-/** Comprovante em 32 colunas (bobina 58 mm), com transactionId, amount e status. */
+/**
+ * Comprovante em 32 colunas (bobina 58 mm), com transactionId, amount e status.
+ * Kotlin puro de propósito: `core:printer` usa para imprimir e `feature:receipt` para a
+ * pré-visualização na folha, sem que a feature precise depender de `core:printer`.
+ */
 class ReceiptFormatter(
     private val width: Int = 32,
     private val timeZone: TimeZone = TimeZone.getDefault(),

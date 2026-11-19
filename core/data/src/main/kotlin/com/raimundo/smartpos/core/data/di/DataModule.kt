@@ -18,9 +18,9 @@ import com.raimundo.smartpos.core.localstorage.db.TransactionDao
 import com.raimundo.smartpos.core.localstorage.db.TransactionEventDao
 import com.raimundo.smartpos.core.localstorage.db.createSmartPosDatabase
 import com.raimundo.smartpos.core.localstorage.prefs.UserPreferencesDataStore
+import com.raimundo.smartpos.core.model.ReceiptFormatter
 import com.raimundo.smartpos.core.network.ConnectivityManagerNetworkMonitor
 import com.raimundo.smartpos.core.printer.PrintQueue
-import com.raimundo.smartpos.core.printer.ReceiptFormatter
 import com.raimundo.smartpos.core.printer.ReceiptPrinter
 import com.raimundo.smartpos.core.printer.SimulatedReceiptPrinter
 import dagger.Binds
