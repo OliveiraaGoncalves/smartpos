@@ -111,9 +111,9 @@ private fun SmartPosNavHost(navController: NavHostController = rememberNavContro
         )
         moreScreen(
             appVersion = com.raimundo.smartpos.BuildConfig.VERSION_NAME,
+            merchantId = com.raimundo.smartpos.BuildConfig.MERCHANT_ID,
             terminalId = com.raimundo.smartpos.BuildConfig.TERMINAL_ID,
             onPendingsClick = { navController.navigateToPendings() },
-            onTerminalDataClick = {},
             onSupportClick = {},
             onBottomNavigate = goToBottomDestination,
         )

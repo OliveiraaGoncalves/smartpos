@@ -13,18 +13,18 @@ fun NavController.navigateToMore() = navigate(MoreRoute)
 
 fun NavGraphBuilder.moreScreen(
     appVersion: String,
+    merchantId: String,
     terminalId: String,
     onPendingsClick: () -> Unit,
-    onTerminalDataClick: () -> Unit,
     onSupportClick: () -> Unit,
     onBottomNavigate: (BottomDestination) -> Unit,
 ) {
     composable<MoreRoute> {
         MoreScreen(
             appVersion = appVersion,
+            merchantId = merchantId,
             terminalId = terminalId,
             onPendingsClick = onPendingsClick,
-            onTerminalDataClick = onTerminalDataClick,
             onSupportClick = onSupportClick,
             onBottomNavigate = onBottomNavigate,
         )
