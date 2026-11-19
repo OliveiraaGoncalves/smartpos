@@ -11,6 +11,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -18,6 +22,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.raimundo.smartpos.core.ui.component.PosButton
 import com.raimundo.smartpos.core.ui.component.PosButtonVariant
+import com.raimundo.smartpos.core.ui.component.SupportContactDialog
 import com.raimundo.smartpos.core.ui.theme.SmartPosSpacing
 import com.raimundo.smartpos.core.ui.theme.SmartPosTheme
 import kotlinx.serialization.Serializable
@@ -42,9 +47,10 @@ enum class BlockingReason(
 fun BlockingScreen(
     reason: BlockingReason,
     onRetryClick: () -> Unit,
-    onSupportClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showSupportDialog by remember { mutableStateOf(false) }
+
     Scaffold(modifier = modifier) { padding ->
         Column(
             modifier =
@@ -80,11 +86,15 @@ fun BlockingScreen(
             )
             PosButton(
                 text = "Falar com o suporte",
-                onClick = onSupportClick,
+                onClick = { showSupportDialog = true },
                 variant = PosButtonVariant.TONAL,
                 modifier = Modifier.padding(top = SmartPosSpacing.md),
             )
         }
+    }
+
+    if (showSupportDialog) {
+        SupportContactDialog(onDismiss = { showSupportDialog = false })
     }
 }
 
@@ -98,7 +108,6 @@ private fun BlockingScreenPreview() {
         BlockingScreen(
             reason = BlockingReason.TERMINAL_NOT_CONFIGURED,
             onRetryClick = NO_OP,
-            onSupportClick = NO_OP,
         )
     }
 }

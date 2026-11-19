@@ -13,15 +13,11 @@ data class BlockingRoute(
 
 fun NavController.navigateToBlocking(reason: BlockingReason) = navigate(BlockingRoute(reason))
 
-fun NavGraphBuilder.blockingScreen(
-    onRetryClick: () -> Unit,
-    onSupportClick: () -> Unit,
-) {
+fun NavGraphBuilder.blockingScreen(onRetryClick: () -> Unit) {
     composable<BlockingRoute> { backStackEntry ->
         BlockingScreen(
             reason = backStackEntry.toRoute<BlockingRoute>().reason,
             onRetryClick = onRetryClick,
-            onSupportClick = onSupportClick,
         )
     }
 }

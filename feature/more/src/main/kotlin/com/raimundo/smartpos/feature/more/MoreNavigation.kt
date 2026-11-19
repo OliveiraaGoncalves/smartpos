@@ -16,7 +16,6 @@ fun NavGraphBuilder.moreScreen(
     merchantId: String,
     terminalId: String,
     onPendingsClick: () -> Unit,
-    onSupportClick: () -> Unit,
     onBottomNavigate: (BottomDestination) -> Unit,
 ) {
     composable<MoreRoute> {
@@ -25,7 +24,6 @@ fun NavGraphBuilder.moreScreen(
             merchantId = merchantId,
             terminalId = terminalId,
             onPendingsClick = onPendingsClick,
-            onSupportClick = onSupportClick,
             onBottomNavigate = onBottomNavigate,
         )
     }

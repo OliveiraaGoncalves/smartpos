@@ -48,7 +48,6 @@ fun SmartPosApp() {
             BlockingScreen(
                 reason = state.reason,
                 onRetryClick = startupViewModel::retry,
-                onSupportClick = {},
             )
         }
 
@@ -114,7 +113,6 @@ private fun SmartPosNavHost(navController: NavHostController = rememberNavContro
             merchantId = com.raimundo.smartpos.BuildConfig.MERCHANT_ID,
             terminalId = com.raimundo.smartpos.BuildConfig.TERMINAL_ID,
             onPendingsClick = { navController.navigateToPendings() },
-            onSupportClick = {},
             onBottomNavigate = goToBottomDestination,
         )
     }

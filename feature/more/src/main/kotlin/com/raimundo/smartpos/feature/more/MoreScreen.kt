@@ -23,6 +23,7 @@ import com.raimundo.smartpos.core.ui.component.DataRow
 import com.raimundo.smartpos.core.ui.component.MenuItem
 import com.raimundo.smartpos.core.ui.component.PosBottomBar
 import com.raimundo.smartpos.core.ui.component.PosTopBar
+import com.raimundo.smartpos.core.ui.component.SupportContactDialog
 import com.raimundo.smartpos.core.ui.theme.SmartPosSpacing
 import com.raimundo.smartpos.core.ui.theme.SmartPosTheme
 
@@ -32,11 +33,11 @@ fun MoreScreen(
     merchantId: String,
     terminalId: String,
     onPendingsClick: () -> Unit,
-    onSupportClick: () -> Unit,
     onBottomNavigate: (BottomDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showTerminalDialog by remember { mutableStateOf(false) }
+    var showSupportDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -52,7 +53,7 @@ fun MoreScreen(
             MenuItem(label = "Pendências", onClick = onPendingsClick)
             MenuItem(label = "Dados do terminal", onClick = { showTerminalDialog = true })
             HorizontalDivider()
-            MenuItem(label = "Falar com o suporte", onClick = onSupportClick)
+            MenuItem(label = "Falar com o suporte", onClick = { showSupportDialog = true })
 
             Column(modifier = Modifier.fillMaxWidth().padding(SmartPosSpacing.lg)) {
                 Text(
@@ -83,6 +84,10 @@ fun MoreScreen(
             },
         )
     }
+
+    if (showSupportDialog) {
+        SupportContactDialog(onDismiss = { showSupportDialog = false })
+    }
 }
 
 private val NO_OP: () -> Unit = {}
@@ -98,7 +103,6 @@ private fun MoreScreenPreview() {
             merchantId = "123456789012345",
             terminalId = "12345678",
             onPendingsClick = NO_OP,
-            onSupportClick = NO_OP,
             onBottomNavigate = NO_OP_DESTINATION,
         )
     }
