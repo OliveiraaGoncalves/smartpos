@@ -25,6 +25,7 @@ class AndroidTestConventionPlugin : Plugin<Project> {
 
             dependencies {
                 add("androidTestImplementation", libs.findLibrary("androidx-test-ext-junit").get())
+                add("androidTestImplementation", libs.findLibrary("androidx-test-core").get())
                 add("androidTestImplementation", libs.findLibrary("androidx-test-runner").get())
                 add("androidTestImplementation", libs.findLibrary("androidx-test-rules").get())
                 add("androidTestImplementation", libs.findLibrary("androidx-espresso-core").get())
