@@ -139,11 +139,13 @@ private fun ApprovedTodayCard(
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
     ) {
         Row(
-            modifier = Modifier.padding(SmartPosSpacing.lg),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth().padding(SmartPosSpacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(SmartPosSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
+            // weight(1f) reserva o ícone: sem isso, um valor grande o suficiente (ex.: várias
+            // vendas somando milhões) empurra o ícone de olho pra fora da área visível do card.
+            Column(modifier = Modifier.weight(1f)) {
                 Text(text = "Vendas aprovadas hoje", style = MaterialTheme.typography.bodyMedium)
                 MoneyText(
                     amountCents = amountCents,

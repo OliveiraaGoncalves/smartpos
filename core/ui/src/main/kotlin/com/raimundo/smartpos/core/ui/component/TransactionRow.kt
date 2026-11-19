@@ -41,10 +41,10 @@ fun TransactionRow(
                 .clickable(onClick = onClick)
                 .padding(horizontal = SmartPosSpacing.lg, vertical = SmartPosSpacing.md)
                 .semantics { contentDescription = "${item.subtitle}, ${item.status.label}" },
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(SmartPosSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(text = item.subtitle, style = MaterialTheme.typography.bodyLarge)
             StatusChip(item.status, modifier = Modifier.padding(top = SmartPosSpacing.xs))
         }
