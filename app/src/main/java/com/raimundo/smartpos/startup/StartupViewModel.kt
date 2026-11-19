@@ -2,7 +2,6 @@ package com.raimundo.smartpos.startup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.raimundo.smartpos.BuildConfig
 import com.raimundo.smartpos.core.domain.usecase.TerminalValidation
 import com.raimundo.smartpos.core.domain.usecase.ValidateTerminalUseCase
 import com.raimundo.smartpos.core.security.Aad
@@ -25,6 +24,12 @@ sealed interface StartupState {
     ) : StartupState
 }
 
+/** Strings cruas do terminal, ainda não validadas (ver [ValidateTerminalUseCase]). */
+data class RawTerminalIds(
+    val merchantId: String,
+    val terminalId: String,
+)
+
 /**
  * Cenários 22/23: valida merchantId/terminalId e a chave de criptografia ANTES de liberar
  * qualquer tela de venda. Nunca deixa uma configuração inválida chegar a um crash.
@@ -35,6 +40,7 @@ class StartupViewModel
     constructor(
         private val validateTerminal: ValidateTerminalUseCase,
         private val payloadCipher: PayloadCipher,
+        private val rawTerminalIds: RawTerminalIds,
     ) : ViewModel() {
         private val _state = MutableStateFlow<StartupState>(StartupState.Loading)
         val state: StateFlow<StartupState> = _state.asStateFlow()
@@ -50,7 +56,7 @@ class StartupViewModel
 
         private fun check() {
             viewModelScope.launch {
-                val terminal = validateTerminal(BuildConfig.MERCHANT_ID, BuildConfig.TERMINAL_ID)
+                val terminal = validateTerminal(rawTerminalIds.merchantId, rawTerminalIds.terminalId)
                 if (terminal is TerminalValidation.Invalid) {
                     _state.value = StartupState.Blocked(BlockingReason.TERMINAL_NOT_CONFIGURED)
                     return@launch

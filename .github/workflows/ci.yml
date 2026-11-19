@@ -76,3 +76,12 @@ jobs:
 
       - name: Testes instrumentados (pixel2api30, aosp-atd)
         run: ./gradlew pixel2api30DebugAndroidTest --console=plain
+
+      - name: Testes E2E do :app (flavor mock, emulador real)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: aosp_atd
+          channel: canary
+          arch: x86_64
+          script: ./gradlew :app:connectedMockDebugAndroidTest --console=plain

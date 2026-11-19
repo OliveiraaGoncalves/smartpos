@@ -26,24 +26,9 @@ private val timeFormatter = SimpleDateFormat("HH:mm:ss", Locale.forLanguageTag("
 internal fun List<TransactionEvent>.toTimelineUi(): List<TimelineStepUi> =
     mapIndexed { index, event ->
         val isLast = index == lastIndex
-        val state =
-            when {
-                !isLast -> {
-                    TimelineStepState.DONE
-                }
-
-                event.status == TransactionStatus.REJEITADA || event.status == TransactionStatus.DESFEITA -> {
-                    if (event.status.isFinal) TimelineStepState.DONE else TimelineStepState.FAILED
-                }
-
-                event.status.isFinal -> {
-                    TimelineStepState.DONE
-                }
-
-                else -> {
-                    TimelineStepState.CURRENT
-                }
-            }
+        // Todo status final (inclusive REJEITADA/DESFEITA) marca o passo como concluído: o
+        // "erro" já aparece no ResultHeader da tela, a linha do tempo só narra os passos.
+        val state = if (!isLast || event.status.isFinal) TimelineStepState.DONE else TimelineStepState.CURRENT
         TimelineStepUi(
             title = event.status.timelineTitle(),
             timestamp = timeFormatter.format(Date(event.timestampMillis)),
