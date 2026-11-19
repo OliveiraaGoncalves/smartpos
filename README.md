@@ -6,6 +6,8 @@ assíncrona (autorização → polling → timeout/desfazimento), com AES-256-GC
 sobre HTTPS, idempotência por `transactionId` e impressão de comprovantes
 conforme as transações terminam — sem nunca travar a UI.
 
+Protótipo de design no Figma: [SmartPOS](https://www.figma.com/design/aGbagVJY5fGVhgWXUzxYWJ/Untitled?node-id=3-3&p=f&m=dev).
+
 ## Como rodar
 
 ```bash
@@ -321,7 +323,6 @@ unzip -l app/build/outputs/apk/prod/release/app-prod-release-unsigned.apk | grep
   `AndroidKeystoreKeyProvider` (hoje só revisados manualmente, ver
   "Cobertura" acima).
 - TalkBack ponta-a-ponta em dispositivo real.
-- Link do Figma do design system (não fornecido nesta entrega).
 
 ## ADRs
 
