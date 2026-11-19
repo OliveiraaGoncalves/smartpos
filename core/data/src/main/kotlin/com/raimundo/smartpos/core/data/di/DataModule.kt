@@ -1,6 +1,7 @@
 package com.raimundo.smartpos.core.data.di
 
 import android.content.Context
+import androidx.work.WorkManager
 import com.raimundo.smartpos.core.common.ApplicationScope
 import com.raimundo.smartpos.core.common.Clock
 import com.raimundo.smartpos.core.common.IdGenerator
@@ -10,6 +11,7 @@ import com.raimundo.smartpos.core.data.journal.RoomTransactionJournal
 import com.raimundo.smartpos.core.data.preferences.DataStoreUserPreferences
 import com.raimundo.smartpos.core.data.repository.TransactionCoordinatorRepository
 import com.raimundo.smartpos.core.domain.connectivity.NetworkMonitor
+import com.raimundo.smartpos.core.domain.engine.EngineConfig
 import com.raimundo.smartpos.core.domain.journal.TransactionJournal
 import com.raimundo.smartpos.core.domain.preferences.UserPreferences
 import com.raimundo.smartpos.core.domain.repository.TransactionRepository
@@ -81,6 +83,16 @@ object DataProvidesModule {
     fun provideUserPreferencesDataStore(
         @ApplicationContext context: Context,
     ): UserPreferencesDataStore = UserPreferencesDataStore(context)
+
+    @Provides
+    @Singleton
+    fun provideEngineConfig(): EngineConfig = EngineConfig()
+
+    @Provides
+    @Singleton
+    fun provideWorkManager(
+        @ApplicationContext context: Context,
+    ): WorkManager = WorkManager.getInstance(context)
 
     @Provides
     @Singleton

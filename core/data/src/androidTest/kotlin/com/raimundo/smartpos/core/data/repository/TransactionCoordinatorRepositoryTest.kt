@@ -61,8 +61,8 @@ class TransactionCoordinatorRepositoryTest {
             TransactionEngine(
                 gateway,
                 journal,
-                EngineConfig(initialPollDelayMs = 10, pollIntervalMs = 10),
                 SystemClock(),
+                EngineConfig(initialPollDelayMs = 10, pollIntervalMs = 10),
             )
         val printQueue = PrintQueue(FakePrinter(), ReceiptFormatter(), scope, SystemClock())
         repository =
