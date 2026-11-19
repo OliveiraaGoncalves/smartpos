@@ -24,7 +24,7 @@ import com.raimundo.smartpos.core.ui.theme.SmartPosTheme
 @Composable
 fun <T> SegmentedSelector(
     options: List<Pair<T, String>>,
-    selectedValue: T,
+    selectedValue: T?,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
 ) {
