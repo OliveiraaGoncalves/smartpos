@@ -16,6 +16,7 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
             pluginManager.apply("smartpos.android.library")
             pluginManager.apply("smartpos.android.compose")
             pluginManager.apply("smartpos.android.hilt")
+            pluginManager.apply(libs.findPlugin("kotlin-serialization").get().get().pluginId)
 
             dependencies {
                 add("implementation", project(":core:ui"))
@@ -28,6 +29,7 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
                 add("implementation", libs.findLibrary("androidx-navigation-compose").get())
                 add("implementation", libs.findLibrary("androidx-hilt-navigation-compose").get())
                 add("implementation", libs.findLibrary("androidx-collections-immutable").get())
+                add("implementation", libs.findLibrary("kotlinx-serialization-json").get())
 
                 add("testImplementation", libs.findLibrary("junit").get())
                 add("testImplementation", libs.findLibrary("kotlinx-coroutines-test").get())

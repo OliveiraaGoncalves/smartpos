@@ -7,14 +7,18 @@ import com.raimundo.smartpos.core.common.IdGenerator
 import com.raimundo.smartpos.core.common.SystemClock
 import com.raimundo.smartpos.core.common.UuidIdGenerator
 import com.raimundo.smartpos.core.data.journal.RoomTransactionJournal
+import com.raimundo.smartpos.core.data.preferences.DataStoreUserPreferences
 import com.raimundo.smartpos.core.data.repository.TransactionCoordinatorRepository
+import com.raimundo.smartpos.core.domain.connectivity.NetworkMonitor
 import com.raimundo.smartpos.core.domain.journal.TransactionJournal
+import com.raimundo.smartpos.core.domain.preferences.UserPreferences
 import com.raimundo.smartpos.core.domain.repository.TransactionRepository
 import com.raimundo.smartpos.core.localstorage.db.SmartPosDatabase
 import com.raimundo.smartpos.core.localstorage.db.TransactionDao
 import com.raimundo.smartpos.core.localstorage.db.TransactionEventDao
 import com.raimundo.smartpos.core.localstorage.db.createSmartPosDatabase
 import com.raimundo.smartpos.core.localstorage.prefs.UserPreferencesDataStore
+import com.raimundo.smartpos.core.network.ConnectivityManagerNetworkMonitor
 import com.raimundo.smartpos.core.printer.PrintQueue
 import com.raimundo.smartpos.core.printer.ReceiptFormatter
 import com.raimundo.smartpos.core.printer.ReceiptPrinter
@@ -47,6 +51,9 @@ abstract class DataBindsModule {
 
     @Binds
     abstract fun bindIdGenerator(impl: UuidIdGenerator): IdGenerator
+
+    @Binds
+    abstract fun bindUserPreferences(impl: DataStoreUserPreferences): UserPreferences
 }
 
 @Module
@@ -74,6 +81,12 @@ object DataProvidesModule {
     fun provideUserPreferencesDataStore(
         @ApplicationContext context: Context,
     ): UserPreferencesDataStore = UserPreferencesDataStore(context)
+
+    @Provides
+    @Singleton
+    fun provideNetworkMonitor(
+        @ApplicationContext context: Context,
+    ): NetworkMonitor = ConnectivityManagerNetworkMonitor(context)
 
     @Provides
     @Singleton

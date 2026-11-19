@@ -5,15 +5,11 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import com.raimundo.smartpos.core.domain.connectivity.NetworkMonitor
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-
-/** `Vender` fica bloqueado offline (cenário 12); a Home mostra o banner correspondente. */
-interface NetworkMonitor {
-    val isOnline: Flow<Boolean>
-}
 
 class ConnectivityManagerNetworkMonitor(
     context: Context,
