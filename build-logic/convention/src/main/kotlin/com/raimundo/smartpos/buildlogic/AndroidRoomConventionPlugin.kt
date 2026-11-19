@@ -17,8 +17,10 @@ class AndroidRoomConventionPlugin : Plugin<Project> {
             }
 
             dependencies {
-                add("implementation", libs.findLibrary("androidx-room-runtime").get())
-                add("implementation", libs.findLibrary("androidx-room-ktx").get())
+                // api: módulos que consomem SmartPosDatabase diretamente (core:data) precisam
+                // de RoomDatabase no classpath de compilação.
+                add("api", libs.findLibrary("androidx-room-runtime").get())
+                add("api", libs.findLibrary("androidx-room-ktx").get())
                 add("ksp", libs.findLibrary("androidx-room-compiler").get())
                 add("testImplementation", libs.findLibrary("androidx-room-testing").get())
                 add("androidTestImplementation", libs.findLibrary("androidx-room-testing").get())

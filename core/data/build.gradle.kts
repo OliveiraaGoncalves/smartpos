@@ -13,11 +13,15 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:domain"))
     implementation(project(":core:network"))
-    implementation(project(":core:local-storage"))
+    api(project(":core:local-storage"))
     implementation(project(":core:printer"))
 
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(project(":core:testing"))
+    androidTestImplementation(project(":core:testing"))
+    androidTestImplementation(project(":core:printer"))
 }

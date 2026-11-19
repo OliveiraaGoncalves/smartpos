@@ -12,6 +12,8 @@ complexity:
     threshold: 80
   LongParameterList:
     active: false
+  TooManyFunctions:
+    thresholdInClasses: 15
 
 naming:
   MatchingDeclarationName:
