@@ -1,0 +1,23 @@
+build:
+  maxIssues: 0
+
+style:
+  MagicNumber:
+    active: false
+  ReturnCount:
+    active: false
+
+complexity:
+  LongMethod:
+    threshold: 80
+  LongParameterList:
+    active: false
+
+naming:
+  MatchingDeclarationName:
+    active: true
+  FunctionNaming:
+    # Composables usam PascalCase (convenção do Compose), não a convenção padrão de função.
+    ignoreAnnotated: ["Composable"]
+  TopLevelPropertyNaming:
+    active: true
