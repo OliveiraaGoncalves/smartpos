@@ -3,7 +3,9 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":core:model"))
-    implementation(project(":core:common"))
-    implementation(libs.kotlinx.coroutines.core)
+    api(project(":core:model"))
+    api(project(":core:common"))
+    api(libs.kotlinx.coroutines.core)
+
+    testImplementation(project(":core:testing"))
 }

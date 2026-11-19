@@ -1,11 +1,10 @@
 plugins {
-    alias(libs.plugins.smartpos.android.library)
+    alias(libs.plugins.smartpos.jvm.library)
 }
 
-android {
-    namespace = "com.raimundo.smartpos.core.testing"
-}
-
+// Kotlin puro de propósito: core:domain (sem Android) também precisa destas fakes nos
+// seus testes unitários, e um módulo jvm não pode depender de um módulo Android.
+// Infra de teste específica de Android (HiltTestRunner, androidx-test) fica em :app.
 dependencies {
     api(project(":core:model"))
     api(project(":core:common"))
@@ -15,8 +14,4 @@ dependencies {
     api(libs.kotlinx.coroutines.test)
     api(libs.truth)
     api(libs.turbine)
-    api(libs.androidx.test.ext.junit)
-    api(libs.androidx.test.runner)
-    api(libs.androidx.test.rules)
-    api(libs.hilt.android.testing)
 }
