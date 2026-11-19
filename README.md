@@ -1,18 +1,27 @@
 # SmartPOS: fluxo de venda assíncrono
 
-Solução do desafio técnico de Desenvolvedor(a) Kotlin (SmartPOS): transações assíncronas com polling, timeout de 15 s e desfazimento, AES-256 no payload, idempotência por `transactionId` e impressão de comprovantes conforme as transações terminam.
+Solução do desafio técnico de Desenvolvedor(a) Kotlin (SmartPOS): um app Android
+em Clean Architecture + MVVM que envia vendas a um backend de forma
+assíncrona (autorização → polling → timeout/desfazimento), com AES-256-GCM
+sobre HTTPS, idempotência por `transactionId` e impressão de comprovantes
+conforme as transações terminam — sem nunca travar a UI.
 
 ## Como rodar
 
 ```bash
-# Android Studio Ladybug+ (JDK 17), SDK 35
-./gradlew installDebug       # instala no emulador/POS
-./gradlew testDebugUnitTest  # testes unitários (JVM, sem emulador)
+# Android Studio Ladybug+ (JDK 17), compileSdk 37, emulador API 24+
+./gradlew installMockDebug        # instala no emulador/POS com o backend mockado
+./gradlew testDebugUnitTest       # testes de unidade (JVM, sem emulador) dos dois flavors
+./gradlew pixel2api30DebugAndroidTest           # testes instrumentados de core/feature (Gradle Managed Device)
+./gradlew :app:connectedMockDebugAndroidTest    # E2E do :app (precisa de emulador/dispositivo já conectado)
 ```
 
-O backend vem **mockado dentro do app** (`USE_MOCK_BACKEND=true`), então não precisa de servidor. Os comprovantes "impressos" aparecem no Logcat (tag `SmartPOS-Printer`) e na Home, em **Ver comprovante**.
+Não existe backend real para configurar: o flavor `mock` roda o backend
+**dentro do próprio processo do app**, como um `Interceptor` do OkHttp (ver
+ADR-0006). Os comprovantes "impressos" aparecem no Logcat (tag
+`SmartPOS-Printer`) e na tela de Detalhe, em **Ver comprovante**.
 
-### Cenários de demonstração (definidos pelos centavos do valor)
+### Cenários de demonstração (escolhidos pelos centavos do valor)
 
 | Centavos | Exemplo | O que o mock faz | Resultado esperado no POS |
 |---|---|---|---|
@@ -23,88 +32,156 @@ O backend vem **mockado dentro do app** (`USE_MOCK_BACKEND=true`), então não p
 | `,66` | R$ 10,66 | Rede cai a partir do 2º polling | `/undo` → **DESFEITA** (FALHA DE COMUNICACAO) |
 | `,77` | R$ 10,77 | Nunca responde e o `/undo` falha 2 vezes | timeout → `/undo` com retry → **DESFEITA** |
 
-Para ver a concorrência, dispare várias vendas seguidas (por exemplo R$ 10,20, depois R$ 5,00, depois R$ 7,13). A UI nunca trava e a Home mostra todas em andamento ao mesmo tempo. Os comprovantes saem na ordem em que cada uma termina.
+Para ver a concorrência, dispare várias vendas seguidas (ex.: R$ 10,20,
+depois R$ 5,00, depois R$ 7,13). A Home volta na hora depois de "Pagar" e
+mostra todas em andamento ao mesmo tempo; os comprovantes saem na ordem em
+que cada uma termina — exatamente o que `SmartPosE2ETest.duas_vendas_concorrentes_nao_bloqueiam_a_ui`
+verifica no emulador.
 
-## Escolha da UI: Jetpack Compose
+## Por que Jetpack Compose
 
-- É o toolkit recomendado hoje. A UI é declarada como função do estado (`StateFlow` → `collectAsStateWithLifecycle`), o que combina com uma lista de transações que muda de estado sozinha em background.
-- Menos código e nenhum XML/adapters para a lista de transações (`LazyColumn` com `key` estável).
-- Previews e um caminho direto para testes de UI.
-- Custo: o APK fica um pouco maior que com Views. Em POS com pouco armazenamento isso pesaria; aqui não é relevante.
+Resumo (razão completa em [ADR-0002](docs/adr/0002-jetpack-compose.md)): as
+telas são função de um estado que muda sozinho em background (uma venda
+avança sem nenhum toque do operador), e Compose + `StateFlow` +
+`collectAsStateWithLifecycle()` modela isso diretamente, sem
+Adapter/`DiffUtil` manual e com testes de semântica em vez de Espresso.
 
-## Arquitetura
+## Árvore de módulos
 
 ```
-ui (Compose + ViewModel)
- └─ SaleLauncher / Flow<List<Transaction>>
-domain
- ├─ TransactionManager   várias transações em paralelo, estado, recuperação, impressão
- └─ TransactionProcessor fluxo de UMA transação (authorize → polling → timeout/undo)
-data
- ├─ remote   HttpPaymentGateway (OkHttp, HTTPS, envelope AES-256-GCM)
- ├─ crypto   AesGcmPayloadCipher, KeyProvider
- ├─ journal  registro persistente (write-ahead) das transações
- └─ mock     MockBackend + MockBackendInterceptor
-printer      ReceiptPrinter, ReceiptFormatter, PrintQueue
+:app                          monta Hilt (incl. módulos por flavor), NavHost, StartupGate
+
+core:model, core:common       Kotlin puro (jvm) — sem Android, sem Hilt
+core:domain                   Kotlin puro (jvm) — TransactionEngine, casos de uso, interfaces
+core:testing                  fakes/fixtures compartilhados (jvm, só testImplementation)
+
+core:security                 AES-256-GCM, KeyProvider (estático no mock / Keystore em prod)
+core:network                  HttpPaymentGateway (OkHttp + HTTPS + envelope cifrado)
+core:network-mock             backend simulado (Interceptor OkHttp) — só no flavor `mock`
+core:local-storage            Room (TransactionDao/Event) + DataStore (preferências)
+core:data                     TransactionCoordinatorRepository, RoomTransactionJournal, Worker
+core:printer                  ReceiptPrinter simulada + PrintQueue (fila serial)
+core:ui                       design system Compose (tema "Petróleo", PosButton, StatusChip...)
+
+feature:home                  tela inicial, lista + banner de pendência
+feature:sale                  tela de venda (teclado numérico próprio)
+feature:transaction-detail    detalhe + linha do tempo técnica
+feature:transactions          lista com filtros
+feature:pendings              desfazimentos pendentes + "tentar agora"
+feature:receipt               comprovante + reimpressão
+feature:more                  menu (sem ViewModel, tela estática)
+feature:blocking              tela de bloqueio (terminal/chave inválidos)
 ```
 
-- **DI manual** (`AppContainer`). O grafo é pequeno e assim o projeto não precisa de geração de código. Num produto, Hilt.
-- **O mock é um `Interceptor` do OkHttp.** O cliente HTTP, a serialização e a criptografia são exatamente os que falariam com o backend real. Para trocar, basta `USE_MOCK_BACKEND=false` e apontar `API_BASE_URL`.
+Regras de dependência (fiscalizadas por revisão de código, não por lint de
+Gradle — ver [ADR-0001](docs/adr/0001-modularizacao-por-camada-e-feature.md)):
+`core:model`/`core:domain` nunca dependem de Android; nenhum `feature:*`
+depende de outro `feature:*` nem de `core:data`/`core:network`/`core:local-storage`
+diretamente — só de `core:domain` e `core:ui`.
 
-### Fluxo de uma transação
+## Arquitetura e fluxo de uma transação
 
 ```mermaid
 sequenceDiagram
-    participant UI
-    participant M as TransactionManager
-    participant P as TransactionProcessor
-    participant J as Journal
-    participant B as Backend
-    UI->>M: startSale(transactionId, valor, tipo)
-    M-->>UI: retorna na hora (UI livre)
-    M->>P: process() em coroutine própria
-    P->>J: grava AUTORIZANDO (antes da rede)
-    P->>B: POST /authorization (AES-256-GCM)
-    B-->>P: 200 OK (só recebimento)
-    loop até 15 s
-        P->>B: GET /polling?transactionId=
-        B-->>P: 204 (pendente) | 200 {status}
+    participant UI as SaleViewModel
+    participant Repo as TransactionCoordinatorRepository
+    participant Eng as TransactionEngine
+    participant J as Room (write-ahead)
+    participant B as Backend (real ou mock)
+
+    UI->>Repo: startSale(transactionId, valor, tipo)
+    Repo-->>UI: retorna na hora (UI livre)
+    Repo->>Eng: process() em coroutine própria (appScope)
+    Eng->>J: grava AUTORIZANDO (antes da rede)
+    Eng->>B: POST /authorization (AES-256-GCM)
+    B-->>Eng: 200 OK (só recebimento, cenário 1)
+    Eng->>J: grava AGUARDANDO_RESULTADO
+    loop até 15 s (cenário 4)
+        Eng->>B: GET /polling?transactionId=
+        B-->>Eng: 204 pendente | 200 {status}
     end
-    alt timeout ou falha de comunicação
-        P->>B: POST /undo (mesmo transactionId, com retry)
+    alt timeout (cenário 5) ou falha de comunicação (cenários 7-10)
+        Eng->>B: POST /undo (mesmo transactionId, com retry — cenário 13)
+        Eng->>J: DESFAZIMENTO_PENDENTE se o undo esgotar (cenário 14)
     end
-    P->>J: grava status final
-    M->>M: PrintQueue imprime o comprovante
+    Eng->>J: grava status final
+    Repo->>Repo: PrintQueue imprime o comprovante (cenários 18-19)
 ```
+
+Estados de `TransactionStatus` (`core:model`):
+
+```
+CRIADA → AUTORIZANDO → AGUARDANDO_RESULTADO ─┬─→ APROVADA
+                                              ├─→ REJEITADA
+                                              └─→ DESFAZENDO → DESFEITA
+                                                            └→ DESFAZIMENTO_PENDENTE (retry via WorkManager)
+```
+
+- **`core:domain/engine/TransactionEngine`** processa **uma** transação:
+  `EngineConfig` define os prazos (`resultTimeoutMs = 15_000`,
+  `initialPollDelayMs = 500`, `pollIntervalMs = 1_000`,
+  `undoMaxAttempts = 3`, `undoRetryBaseDelayMs = 1_000`).
+- **`core:data/repository/TransactionCoordinatorRepository`** orquestra
+  **várias** transações em paralelo (uma coroutine por venda, no
+  `appScope`) e é a única fonte de verdade da UI (Flow do Room — ver
+  [ADR-0004](docs/adr/0004-room-como-fonte-unica-de-verdade.md)).
+- **`core:data/worker/PendingUndoWorkScheduler`** garante que um `/undo`
+  pendente seja retentado mesmo com o app fechado (ver
+  [ADR-0005](docs/adr/0005-workmanager-para-retry-de-desfazimento.md)).
 
 ## Como cada requisito foi atendido
 
-| Requisito | Onde | Como |
+| Requisito | Módulo / classe | Como |
 |---|---|---|
-| UI: Home com "Vender" e tela de venda (valor, Débito/Crédito, Pagar) | `ui/home`, `ui/sale` | Compose. Valor digitado como centavos com máscara `R$`. O botão Pagar só habilita com valor > 0 e tipo escolhido |
-| Não travar a UI / várias transações simultâneas | `TransactionManager` | Cada venda roda numa coroutine no escopo da aplicação (`SupervisorJob`), fora da Main. Rede via `enqueue` assíncrono. A tela de venda dispara e volta para a Home na hora |
-| `transactionId` único e idempotente | `SaleViewModel`, `TransactionManager`, `MockBackend` | UUID gerado **uma vez por venda**: toque duplo não gera outra transação, e o manager ignora id repetido. O mesmo id/payload é usado em `/authorization`, `/polling` e `/undo`. Vai também nos headers `X-Transaction-Id` e `Idempotency-Key`. O backend trata repetição com mesmo payload como no-op e com payload diferente como 409 |
-| HTTPS | `HttpPaymentGateway`, `network_security_config.xml` | O gateway recusa URL não-HTTPS e o app proíbe cleartext |
-| AES-256 adicional no corpo | `data/crypto` | AES-256-**GCM** (ver Segurança) |
-| `/authorization` só confirma recebimento | `TransactionProcessor` | 200 move a transação para `AGUARDANDO_RESULTADO`, sem interpretar resultado |
-| Resultado via polling | `awaitFinalStatus` | 1º polling após 500 ms, depois a cada 1 s, até APROVADA/REJEITADA/DESFEITA |
-| Timeout de 15 s → `/undo` | `withTimeoutOrNull(15_000)` | O prazo cobre **todo** o fluxo (inclusive um `/authorization` lento). Ao estourar, a chamada HTTP em curso é cancelada e o `/undo` é chamado |
-| Falha de comunicação → sempre `/undo` | `CommunicationException` | Erro de rede, HTTP ≠ 2xx, corpo que não decifra e resposta de polling de outra transação ou valor: tudo vira `/undo`. Isso inclui falha no próprio `/authorization`, porque o backend pode ter recebido e só a resposta se perdeu |
-| Impressão conforme processamento | `PrintQueue` | Fila serial (a impressora é um recurso único). Imprime na ordem de **conclusão**, um comprovante por transação, com retry em falha de impressora |
-| Comprovante com transactionId, amount, status | `ReceiptFormatter` | 32 colunas (bobina 58 mm). Também traz EC, terminal, data, tipo e motivo do desfazimento |
-| Resiliência | `TransactionJournal`, `TransactionManager.start()` | Ver abaixo |
+| Home com "Vender", lista de transações | `feature:home` | `HomeScreen` + `HomeViewModel`, Flow do repositório |
+| Tela de venda (valor, Débito/Crédito, Pagar) | `feature:sale` | Teclado numérico próprio (`core:ui/NumericKeypad`), valor em centavos |
+| UI nunca trava / várias transações simultâneas | `TransactionCoordinatorRepository` | Cada venda roda em coroutine própria no `appScope` (`SupervisorJob`); `SaleViewModel.onPayClick` retorna na hora |
+| `transactionId` único e idempotente | `SaleViewModel`, `TransactionEngine`, `MockBackend` | UUID gerado uma única vez por venda (toque duplo reenvia o mesmo id); o backend trata payload repetido como no-op e payload diferente como 409 |
+| HTTPS | `HttpPaymentGateway`, `network_security_config.xml` | `require(baseUrl.isHttps)`; cleartext proibido no manifest |
+| AES-256 adicional no corpo | `core:security` | AES-256-**GCM** com AAD — ver [ADR-0003](docs/adr/0003-aes-256-gcm-sobre-https.md) |
+| `/authorization` só confirma recebimento | `TransactionEngine.process` | 200 move para `AGUARDANDO_RESULTADO`, sem interpretar resultado |
+| Resultado via polling | `TransactionEngine.awaitFinalStatus` | 1º polling após 500 ms, depois a cada 1 s, até status final |
+| Timeout de 15 s → `/undo` | `withTimeoutOrNull(EngineConfig.resultTimeoutMs)` | Cobre todo o fluxo, inclusive uma `/authorization` lenta |
+| Falha de comunicação → sempre `/undo` | `CommunicationException` | Qualquer erro de rede, HTTP não-2xx, decriptação ou resposta inconsistente |
+| Impressão conforme processamento | `core:printer/PrintQueue` | Fila serial, retry em falha de impressora, reimpressão sob demanda |
+| Comprovante com transactionId, valor, status | `core:model/ReceiptFormatter` | 32 colunas (bobina 58 mm) |
+| Resiliência (app morto, retry) | `RoomTransactionJournal`, `TransactionCoordinatorRepository.start()`, `PendingUndoWorkScheduler` | Write-ahead + recuperação + WorkManager |
 
-### Resiliência além do pedido
+## Tabela de cenários → testes
 
-- **Write-ahead journal:** o estado é gravado em disco antes de cada chamada de rede. Se o app morrer no meio do polling, na próxima abertura a transação órfã é desfeita (motivo `RECUPERACAO`) e o comprovante é impresso.
-- **`/undo` com retry e backoff** (3 tentativas, não cancelável). Se ainda assim não confirmar, a transação fica `DESFAZIMENTO_PENDENTE` e é retentada a cada 30 s. Ela não é dada como desfeita sem confirmação do backend.
-- **`/undo` idempotente no backend**, inclusive quando chega **antes** da autorização: o mock grava uma "lápide" que impede uma aprovação tardia.
-- **Validação da resposta:** o resultado do polling precisa bater com `transactionId`, valor, tipo, EC e terminal enviados.
-- `maxRequestsPerHost` do OkHttp elevado (o padrão é 5), para várias transações fazerem polling ao mesmo tempo sem fila.
+Os 23 cenários do desafio, na ordem numerada, e onde cada um é verificado
+(todos passam — ver "Qualidade" abaixo para como reproduzir):
+
+| # | Cenário | Teste(s) |
+|---|---|---|
+| 1 | Venda aprovada | `TransactionEngineTest.aprovada apos alguns pollings - sem undo`, `GatewayWithMockBackendTest.fluxo aprovado...`, `SmartPosE2ETest.venda_aprovada_mostra_status_e_comprovante` |
+| 2 | Venda rejeitada | `TransactionEngineTest.rejeitada - sem undo` |
+| 3 | Backend informa DESFEITA diretamente | `TransactionEngineTest.backend informa DESFEITA - nao chama undo de novo` |
+| 4 | Aguardando resultado (polling pendente) | `TransactionEngineTest.aguardando resultado antes do polling final`, `HttpPaymentGatewayTest.polling 204 retorna null (pendente)` |
+| 5 | Timeout de 15 s | `TransactionEngineTest.sem resultado em 15s - desfaz exatamente aos 15s`, `SmartPosE2ETest.venda_sem_resposta_desfaz_apos_timeout` (~16 s reais, no emulador) |
+| 6 | Authorization lenta conta no prazo | `TransactionEngineTest.authorization lento tambem conta no prazo de 15s` |
+| 7 | Falha de rede no `/authorization` (envio) | `TransactionEngineTest.falha de rede no authorization - desfaz` |
+| 8 | Resposta do `/authorization` perdida | `TransactionEngineTest.resposta do authorization perdida...`, `GatewayWithMockBackendTest.resposta perdida do authorization - undo garante DESFEITA no backend` |
+| 9 | Falha de rede no polling | `TransactionEngineTest.falha de rede no polling - desfaz` |
+| 10 | Erro HTTP (não-2xx) | `HttpPaymentGatewayTest.authorization com http de erro lanca CommunicationException` |
+| 11 | Resposta de polling inconsistente (outra transação/valor) | `TransactionEngineTest.resposta de polling de outra transacao ou valor - desfaz` |
+| 12 | Bloqueio de venda offline | `HomeViewModelTest.vender offline mostra snackbar e nao navega` |
+| 13 | Retry do `/undo` (falha 2x, confirma na 3ª) | `TransactionEngineTest.undo falha duas vezes e funciona na terceira` |
+| 14 | Esgotamento do `/undo` (fica pendente) | `TransactionEngineTest.undo nunca confirma - fica DESFAZIMENTO_PENDENTE`, `PendingsViewModelTest.mostra apenas transacoes com desfazimento pendente` |
+| 15 | Recuperação após app morto (transação órfã) | `TransactionCoordinatorRepositoryTest.recuperacaoAoAbrirDesfazTransacaoOrfa` (emulador real) |
+| 16 | Vendas concorrentes | `TransactionCoordinatorRepositoryTest.vendasSimultaneasTerminamIndependentemente`, `SmartPosE2ETest.duas_vendas_concorrentes_nao_bloqueiam_a_ui` |
+| 17 | Toque duplo / idempotência | `TransactionCoordinatorRepositoryTest.idDuplicadoDoTequeDuploEhIgnorado`, `SaleViewModelTest.toque duplo em pagar gera uma unica transacao`, `TransactionEngineTest.mesmo transactionId e payload...`, `GatewayWithMockBackendTest.authorization repetida nao duplica...` |
+| 18 | Falha de impressora com retry | `PrintQueueTest.falha de impressora tem retry e cada transacao imprime uma unica vez` |
+| 19 | Impressora esgota tentativas / reimpressão | `PrintQueueTest.impressora sem papel esgota as tentativas...`, `PrintQueueTest.reimpressao gera nova via mesmo apos sucesso`, `ReceiptViewModelTest.reimprimir chama o use case e avisa` |
+| 20 | Venda incompleta (validação) | `SaleViewModelTest.venda incompleta desabilita pagar e toque avisa o motivo` |
+| 21 | Valor no limite | `SaleViewModelTest.valor no limite bloqueia mais digitos e avisa` |
+| 22 | Terminal mal configurado | `ValidateTerminalUseCaseTest`, `StartupViewModelTest.merchantId invalido bloqueia com TERMINAL_NOT_CONFIGURED` |
+| 23 | Chave de segurança inválida | `StartupViewModelTest.chave de criptografia que falha bloqueia com INVALID_SECURITY_KEY` |
 
 ## Segurança
 
-**AES-256-GCM** em vez de CBC: GCM é cifragem autenticada, então além do sigilo garante que o corpo não foi alterado (um `amount` adulterado é rejeitado). Assim não é preciso um HMAC separado.
+Ver [ADR-0003](docs/adr/0003-aes-256-gcm-sobre-https.md) para a decisão
+completa. Resumo do envelope:
 
 ```json
 POST /authorization
@@ -115,35 +192,145 @@ X-Payload-Encryption: A256GCM
 { "kid": "dev-key-01", "alg": "A256GCM", "iv": "<12 bytes b64>", "data": "<ciphertext+tag b64>" }
 ```
 
-- O **IV é aleatório** (96 bits, `SecureRandom`) a cada mensagem e nunca é reutilizado.
-- **AAD = `"<método> <endpoint>|<transactionId>"`**: o ciphertext fica preso ao endpoint e à transação. Um corpo capturado de `/authorization` não decifra se for reenviado para `/undo` nem associado a outro id (há teste para isso).
-- A **resposta do polling também é cifrada e autenticada**. Sem isso, quem conseguisse interceptar o TLS poderia forjar um `APROVADA`.
-- O `kid` permite rotação de chave.
-
-**Chave:** neste projeto há uma chave fixa de **desenvolvimento** no `BuildConfig`, compartilhada com o mock. Em produção a chave seria **única por terminal**, injetada na ativação (protegida por RSA/ECDH ou por esquema DUKPT) e guardada no **Android Keystore** como chave não exportável, importada via `WrappedKeyEntry` (API 28+) ou mantida no secure element do POS. Também entrariam **certificate pinning** (`CertificatePinner`) e nenhum log de payload.
+- IV aleatório (96 bits) por mensagem, nunca reutilizado.
+- AAD (`"<método> <path>|<transactionId>"`) amarra o ciphertext ao endpoint
+  e à transação — um corpo de `/authorization` não decifra se reenviado
+  para `/undo` ou associado a outro id.
+- A resposta do `/polling` também é cifrada e autenticada.
+- **Flavor `mock`:** chave AES-256 fixa de **desenvolvimento**, hardcoded no
+  `BuildConfig` só desse flavor e compartilhada com o backend simulado —
+  nunca compila no flavor `prod` (confirmado abaixo, em "Qualidade").
+- **Flavor `prod`:** `AndroidKeystoreKeyProvider` — a chave é gerada e vive
+  só no Android Keystore (`AndroidKeyStore`, modo GCM, não exportável),
+  nunca existe em texto claro no processo do app.
+- `allowBackup="false"` no manifest; nenhum log de payload/chave em
+  release.
 
 ## Premissas adotadas
 
-1. **Polling pendente = HTTP 204.** O contrato só define a resposta com status final, então enquanto não há resultado o backend responde `204 No Content`.
-2. **`amount` em centavos (inteiro).** O contrato mostra `"amount": 0`. Centavos evitam erro de ponto flutuante com dinheiro.
-3. `paymentType` trafega como `"Credito"`/`"Debito"`, como no contrato.
-4. O prazo de 15 s conta a partir do envio do `/authorization`. O `/undo` roda fora desse prazo.
-5. Um resultado `DESFEITA` informado pelo próprio backend é final e não gera outro `/undo`.
-6. O comprovante é impresso também para REJEITADA e DESFEITA ("conforme as transações forem sendo processadas").
-7. `merchantId` (15 dígitos) e `terminalId` (8 dígitos) vêm da configuração do terminal e são validados na inicialização.
+1. **Polling pendente = HTTP 204.** O contrato só define a resposta com
+   status final; enquanto não há resultado o backend responde
+   `204 No Content`.
+2. **`amount` em centavos (inteiro).** Evita erro de ponto flutuante com
+   dinheiro.
+3. `paymentType` trafega como `"Credito"`/`"Debito"`.
+4. O prazo de 15 s conta a partir do envio do `/authorization`; o `/undo`
+   roda fora desse prazo e não é cancelável.
+5. Um `DESFEITA` informado pelo próprio backend é final e não gera outro
+   `/undo` (cenário 3).
+6. O comprovante é impresso também para `REJEITADA` e `DESFEITA`
+   ("conforme as transações forem sendo processadas").
+7. `merchantId` (15 dígitos) e `terminalId` (8 dígitos) vêm da configuração
+   do terminal e são validados no `StartupGate`, antes de qualquer venda
+   ser possível (cenário 22).
+8. Terminal mal configurado ou chave de criptografia inválida nunca
+   crasham o app: levam à tela de bloqueio (`feature:blocking`), com
+   "Tentar novamente" (cenários 22/23).
 
-## Testes
+## Qualidade
 
-`./gradlew testDebugUnitTest`: testes de JVM puros. Os de fluxo usam **tempo virtual** (`kotlinx-coroutines-test`), então o timeout de 15 s é verificado em milissegundos.
+```bash
+./gradlew spotlessCheck detekt :app:lint   # formatação, estática, lint Android
+./gradlew testDebugUnitTest                # testes de unidade, flavors mock e prod
+./gradlew koverXmlReport koverVerify       # cobertura agregada (ver abaixo)
+./gradlew pixel2api30DebugAndroidTest      # instrumentados de core/feature (Gradle Managed Device)
+./gradlew :app:connectedMockDebugAndroidTest   # E2E do :app (emulador/dispositivo já conectado)
+./gradlew :app:assembleProdRelease         # build de release do flavor prod, com R8
+```
 
-- `TransactionProcessorTest`: aprovada, rejeitada, timeout exatamente aos 15 s, `/authorization` lento, falha no authorize e no polling, resposta inconsistente, DESFEITA vinda do backend, retry e esgotamento do undo, idempotência do payload, gravação no journal antes da rede.
-- `TransactionManagerTest`: 3 vendas em paralelo com comprovantes na ordem de conclusão, id duplicado, recuperação após reinício, retry periódico de desfazimento pendente.
-- `GatewayWithMockBackendTest`: OkHttp e criptografia reais contra o mock (204/200, idempotência, 409, resposta perdida + undo, undo antes da autorização, corpo sem AES recusado, HTTPS obrigatório).
-- `AesGcmPayloadCipherTest`, `PrintingTest`, `SaleViewModelTest`.
+Todos os comandos acima foram executados neste repositório antes de cada
+commit (ver histórico do Git) — nenhuma fase foi marcada como concluída
+sem isso passar.
+
+### Cobertura (Kover)
+
+O `build.gradle.kts` da raiz agrega o relatório de Kover de
+`core:domain/security/network/network-mock/printer` + os ViewModels de
+`feature:*` + `:app` num único relatório (`./gradlew koverXmlReport`,
+saída em `build/reports/kover/report.xml`). Isso importa porque um caso de
+uso em `core:domain` muitas vezes só é exercitado pelo teste do ViewModel
+que o consome (`feature:home` testa `ObserveTransactionsUseCase`, por
+exemplo) — medir `core:domain` isolado subestimaria a cobertura real.
+
+Os filtros excluem código gerado (Hilt, Compose, `BuildConfig`, R) e duas
+classes que só funcionam com hardware real — `AndroidKeystoreKeyProvider`
+(Android Keystore) e `ConnectivityManagerNetworkMonitor`
+(`ConnectivityManager`) — que por isso não são exercitadas em teste de JVM;
+ambas são simples o bastante para serem revisadas manualmente, e o
+*comportamento* que elas expõem (chave inválida bloqueia a venda,
+"vender" desabilitado offline) é coberto nos testes de
+`StartupViewModelTest`/`HomeViewModelTest` com fakes.
+
+**`core:data` fica fora do agregado:** seus próprios testes
+(`TransactionCoordinatorRepositoryTest`, `TransactionDaoTest`) são
+instrumentados (Room + emulador real), e o Kover, por padrão, só
+instrumenta execução de testes de **JVM** — a cobertura real de
+`core:data` existe, mas o Kover não a mede.
+
+Resultado medido (não uma meta, um número real desta execução):
+**92% de linhas cobertas** no relatório agregado (meta do desafio: ≥80%).
+`koverVerify` falha o build se cair abaixo disso.
+
+### Prova de que o flavor `prod` não inclui o mock
+
+```bash
+./gradlew :app:assembleProdRelease
+unzip -l app/build/outputs/apk/prod/release/app-prod-release-unsigned.apk | grep -i networkmock
+# (sem saída — nenhuma classe de core:network-mock no APK)
+```
+
+## Acessibilidade
+
+- **Contraste:** os pares de cor usados em texto/ícone sobre fundo (tema
+  "Petróleo", `core:ui/theme/Color.kt`) foram checados contra WCAG 2.1 —
+  todos ≥ 4.5:1 (AA para texto normal), a maioria ≥ 7:1 (AAA):
+  `onPrimary/primary` 7.4:1 (claro) e 7.6:1 (escuro); `onSurface/background`
+  16.5:1 (claro) e 15.7:1 (escuro); os pares de `StatusChip`
+  (sucesso/atenção/erro sobre seu container) entre 4.6:1 e 5.4:1.
+- **Toque:** `SmartPosSizing.minTouchTarget = 48.dp` (mínimo recomendado),
+  `buttonHeight`/`keyHeight = 56.dp` em `PosButton` e no teclado numérico.
+- **Leitor de tela:** todo ícone decorativo tem `contentDescription = null`
+  (não duplica o texto ao lado); todo elemento só-ícone tem descrição
+  (`"Apagar"` no backspace do teclado, `"Mostrar/Ocultar valores"` no ícone
+  de olho, `"Voltar"` na seta do topo). `StatusChip`, `ResultHeader` e
+  `TransactionRow` mesclam a semântica num único nó para o TalkBack não
+  ler texto duplicado em pedaços.
+- **Gap encontrado e corrigido nesta fase:** `MoneyText(hidden = true)`
+  renderizava o placeholder `"R$ ••••"` sem `contentDescription` — o
+  TalkBack leria os bullets um a um. Corrigido para anunciar
+  `"Valor oculto"` (`core/ui/component/MoneyText.kt`).
+- **Toque "morto":** nenhum botão do app deixa de responder ao toque por
+  estar visualmente desabilitado — `PosButton(enabled = false)` sempre
+  dispara `onClick`; quem chama decide mostrar um snackbar explicando o
+  motivo (regra de ouro do design system, ver `core:ui/PosButton.kt` e
+  `PosButtonTest.botaoDesabilitadoContinuaRespondendoAoToque`).
+- **Claro/escuro:** todas as telas usam `SmartPosTheme(darkTheme = isSystemInDarkTheme())`
+  e têm `@Preview` em claro e escuro.
+- **Não verificado nesta fase** (fora do escopo de tempo): navegação
+  completa só por teclado físico/switch-access, e TalkBack ponta-a-ponta
+  num dispositivo real fora do emulador.
 
 ## Próximos passos (fora do escopo)
 
-- Room no lugar do journal em `SharedPreferences` e WorkManager para os desfazimentos pendentes.
-- Adaptador para o SDK de impressão do fabricante (PAX, Gertec, Positivo…) implementando `ReceiptPrinter`, com reimpressão.
-- Chave por terminal, certificate pinning e ofuscação (R8) na release.
-- Testes de UI com Compose (`createComposeRule`) e métricas/observabilidade das transações.
+- Lint de dependências entre módulos (hoje a regra "feature não depende de
+  feature" é só revisão de PR — ver ADR-0001).
+- Certificate pinning (`CertificatePinner`) no flavor `prod`.
+- Adaptador para o SDK de impressão do fabricante (PAX, Gertec,
+  Positivo…) implementando `ReceiptPrinter`.
+- Testes instrumentados para `ConnectivityManagerNetworkMonitor` e
+  `AndroidKeystoreKeyProvider` (hoje só revisados manualmente, ver
+  "Cobertura" acima).
+- TalkBack ponta-a-ponta em dispositivo real.
+- Link do Figma do design system (não fornecido nesta entrega).
+
+## ADRs
+
+Decisões de arquitetura documentadas em [`docs/adr/`](docs/adr/):
+
+1. [Modularização por camada e por feature](docs/adr/0001-modularizacao-por-camada-e-feature.md)
+2. [Jetpack Compose em vez de Views/XML](docs/adr/0002-jetpack-compose.md)
+3. [AES-256-GCM sobre HTTPS](docs/adr/0003-aes-256-gcm-sobre-https.md)
+4. [Room (write-ahead) como fonte única de verdade](docs/adr/0004-room-como-fonte-unica-de-verdade.md)
+5. [WorkManager para retry de desfazimento pendente](docs/adr/0005-workmanager-para-retry-de-desfazimento.md)
+6. [Mock do backend como Interceptor do OkHttp](docs/adr/0006-mock-backend-como-interceptor-okhttp.md)
+7. [Hilt para injeção de dependência](docs/adr/0007-hilt-para-injecao-de-dependencia.md)

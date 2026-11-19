@@ -6,6 +6,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import com.raimundo.smartpos.core.ui.theme.SmartPosTheme
@@ -20,7 +22,14 @@ fun MoneyText(
     color: Color = LocalContentColor.current,
 ) {
     val text = if (hidden) HIDDEN_PLACEHOLDER else formatMoney(amountCents)
-    Text(text = text, modifier = modifier, style = style, color = color)
+    val semanticsModifier =
+        if (hidden) {
+            // Sem isso, o leitor de tela lê os bullets um a um em vez de "valor oculto".
+            modifier.semantics { contentDescription = "Valor oculto" }
+        } else {
+            modifier
+        }
+    Text(text = text, modifier = semanticsModifier, style = style, color = color)
 }
 
 private const val HIDDEN_PLACEHOLDER = "R$ ••••"
