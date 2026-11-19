@@ -1,0 +1,7 @@
+root = true
+
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 120
+# Composables usam PascalCase (convenção do Compose), não a convenção padrão de nome de função.
+ktlint_function_naming_ignore_when_annotated_with = Composable

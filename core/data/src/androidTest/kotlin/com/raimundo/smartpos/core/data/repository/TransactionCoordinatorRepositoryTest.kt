@@ -57,7 +57,13 @@ class TransactionCoordinatorRepositoryTest {
         gateway = FakeGateway()
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val journal = RoomTransactionJournal(db.transactionDao(), db.transactionEventDao())
-        val engine = TransactionEngine(gateway, journal, EngineConfig(initialPollDelayMs = 10, pollIntervalMs = 10), SystemClock())
+        val engine =
+            TransactionEngine(
+                gateway,
+                journal,
+                EngineConfig(initialPollDelayMs = 10, pollIntervalMs = 10),
+                SystemClock(),
+            )
         val printQueue = PrintQueue(FakePrinter(), ReceiptFormatter(), scope, SystemClock())
         repository =
             TransactionCoordinatorRepository(

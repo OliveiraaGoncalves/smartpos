@@ -6,6 +6,9 @@ style:
     active: false
   ReturnCount:
     active: false
+  UnusedPrivateMember:
+    # @Preview só é chamado pelo tooling do Compose, nunca por outro código.
+    ignoreAnnotated: ["Preview"]
 
 complexity:
   LongMethod:
@@ -17,7 +20,9 @@ complexity:
 
 naming:
   MatchingDeclarationName:
-    active: true
+    # core:ui agrupa o enum/data class de estado de UI com o Composable correspondente
+    # no mesmo arquivo (convenção comum em design systems Compose).
+    active: false
   FunctionNaming:
     # Composables usam PascalCase (convenção do Compose), não a convenção padrão de função.
     ignoreAnnotated: ["Composable"]
