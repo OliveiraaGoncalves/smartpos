@@ -1,19 +1,20 @@
 plugins {
+    // AGP 9+ compila Kotlin nativamente; não aplicamos org.jetbrains.kotlin.android.
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
 
 android {
     namespace = "com.raimundo.smartpos"
-    compileSdk = 35
+    // compileSdk 37 é exigido pelas libs AndroidX atuais; targetSdk 36 é o mínimo hoje na Play Store.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.raimundo.smartpos"
         // SmartPOS de mercado ainda rodam Android 7.x – 10; minSdk 24 cobre o parque.
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
 
@@ -43,10 +44,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
     }
 
     buildFeatures {
