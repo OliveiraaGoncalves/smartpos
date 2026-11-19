@@ -4,7 +4,9 @@ import com.raimundo.smartpos.core.model.PaymentType
 
 data class SaleUiState(
     val amountCents: Long = 0,
-    val paymentType: PaymentType? = null,
+    // Já vem com Crédito selecionado: o operador não deveria precisar escolher uma forma de
+    // pagamento antes de poder digitar o valor na maioria das vendas.
+    val paymentType: PaymentType? = PaymentType.CREDITO,
     val isSubmitting: Boolean = false,
 ) {
     val canPay: Boolean get() = amountCents > 0 && paymentType != null && !isSubmitting

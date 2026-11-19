@@ -65,7 +65,14 @@ class SaleViewModelTest {
         }
 
     @Test
-    fun `venda incompleta desabilita pagar e toque avisa o motivo`() =
+    fun `forma de pagamento ja vem selecionada com Credito`() {
+        val vm = viewModel()
+
+        assertEquals(PaymentType.CREDITO, vm.uiState.value.paymentType)
+    }
+
+    @Test
+    fun `venda sem valor desabilita pagar e toque avisa o motivo`() =
         runTest {
             val vm = viewModel()
 
@@ -75,10 +82,7 @@ class SaleViewModelTest {
                 vm.onPayClick()
                 val event = awaitItem()
                 assertTrue(event is SaleEvent.ShowSnackbar)
-                assertEquals(
-                    "Informe o valor e a forma de pagamento.",
-                    (event as SaleEvent.ShowSnackbar).message,
-                )
+                assertEquals("Informe o valor.", (event as SaleEvent.ShowSnackbar).message)
             }
         }
 
