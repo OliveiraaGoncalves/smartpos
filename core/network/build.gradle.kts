@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.smartpos.android.library)
     alias(libs.plugins.smartpos.android.test)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -10,6 +11,7 @@ android {
 dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:common"))
+    implementation(project(":core:domain"))
     implementation(project(":core:security"))
 
     implementation(libs.okhttp)
@@ -17,4 +19,5 @@ dependencies {
 
     testImplementation(project(":core:testing"))
     testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.okhttp.tls)
 }

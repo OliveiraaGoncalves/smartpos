@@ -9,7 +9,7 @@ composeBom = "2026.09.00"
 navigationCompose = "2.10.2"
 coroutines = "1.11.0"
 serialization = "1.13.0"
-okhttp = "4.12.0"
+okhttp = "5.5.1"
 junit = "4.13.2"
 room = "2.8.5"
 hilt = "2.60.1"
@@ -64,7 +64,8 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 javax-inject = { group = "javax.inject", name = "javax.inject", version = "1" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
-okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }
+okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver3", version.ref = "okhttp" }
+okhttp-tls = { group = "com.squareup.okhttp3", name = "okhttp-tls", version.ref = "okhttp" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
