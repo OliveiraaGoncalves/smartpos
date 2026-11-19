@@ -1,5 +1,6 @@
 package com.raimundo.smartpos.feature.transactions
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -52,9 +54,12 @@ fun TransactionsScreen(
                 modifier =
                     Modifier
                         .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
                         .padding(horizontal = SmartPosSpacing.lg),
                 horizontalArrangement = Arrangement.spacedBy(SmartPosSpacing.sm),
             ) {
+                // Os 5 filtros não cabem numa tela de POS sem rolagem; sem isso, "Desfeitas" e
+                // "Rejeitadas" ficavam inacessíveis, cortados fora da tela.
                 TransactionFilter.entries.forEach { filter ->
                     PosFilterChip(
                         label = filter.label,
