@@ -70,6 +70,10 @@ jobs:
 
       - name: Aceita as licenças do Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # O default da action inclui o pacote legado "tools", removido do repositório
+          # do SDK; platform-tools sozinho evita isso e ainda garante as licenças aceitas.
+          packages: "platform-tools"
 
       - name: Habilita KVM para o emulador
         run: |
