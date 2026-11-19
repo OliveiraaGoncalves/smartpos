@@ -71,7 +71,7 @@ fun TransactionDetailScreen(
             }
 
             Card(title = "Dados da transação") {
-                DataRow(label = "ID da transação", value = state.transactionId)
+                DataRow(label = "ID da transação", value = state.transactionId, expandable = true)
                 DataRow(label = "Forma de pagamento", value = state.paymentTypeLabel)
                 DataRow(label = "Terminal", value = state.terminalId)
                 if (state.undoReasonLabel != null) {
