@@ -1,6 +1,7 @@
 package com.raimundo.smartpos.feature.more
 
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.raimundo.smartpos.core.ui.component.BottomDestination
@@ -9,7 +10,13 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object MoreRoute
 
-fun NavController.navigateToMore() = navigate(MoreRoute)
+/** Raiz de aba: ver HomeNavigation.navigateToHome para o porquê do popUpTo/singleTop/restoreState. */
+fun NavController.navigateToMore() =
+    navigate(MoreRoute) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
 
 fun NavGraphBuilder.moreScreen(
     appVersion: String,
